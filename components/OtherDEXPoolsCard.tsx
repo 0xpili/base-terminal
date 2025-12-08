@@ -24,11 +24,11 @@ export default function OtherDEXPoolsCard({
       <div className="terminal-card">
         <div className="flex items-center mb-4">
           <span className="text-terminal-textBright mr-2">{'>'}</span>
-          <h3 className="terminal-heading m-0">🔄 OTHER_DEXES</h3>
+          <h3 className="terminal-heading m-0">🔄 OTHER_DEXs</h3>
         </div>
         <div className="flex items-center gap-3 text-terminal-text">
           <div className="animate-spin h-5 w-5 border-2 border-terminal-text border-t-transparent rounded-full"></div>
-          <p className="text-terminal-textDim">Loading pool data from multiple DEXes...</p>
+          <p className="text-terminal-textDim">Loading pool data from multiple DEXs...</p>
         </div>
       </div>
     );
@@ -125,7 +125,7 @@ export default function OtherDEXPoolsCard({
       <div className="terminal-card">
         <div className="flex items-center mb-4">
           <span className="text-terminal-textBright mr-2">{'>'}</span>
-          <h3 className="terminal-heading m-0">🔄 OTHER_DEXES</h3>
+          <h3 className="terminal-heading m-0">🔄 OTHER_DEXs</h3>
         </div>
         <p className="text-terminal-textDim">No additional DEX pool data available (received {allPools.length} pools but none with meaningful data)</p>
       </div>
@@ -137,7 +137,7 @@ export default function OtherDEXPoolsCard({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <span className="text-terminal-textBright mr-2">{'>'}</span>
-          <h3 className="terminal-heading m-0">🔄 OTHER_DEXES</h3>
+          <h3 className="terminal-heading m-0">🔄 OTHER_DEXs</h3>
         </div>
         <button
           onClick={handleDownloadCSV}
@@ -198,7 +198,7 @@ export default function OtherDEXPoolsCard({
 
       {/* Footer */}
       <div className="text-terminal-textDim text-xs pt-4 mt-4 border-t border-terminal-border">
-        {'>'} Showing {sortedPools.length} pool{sortedPools.length !== 1 ? 's' : ''} across multiple DEXes (sorted by TVL)
+        {'>'} Showing {sortedPools.length} pool{sortedPools.length !== 1 ? 's' : ''} across multiple DEXs (sorted by TVL)
       </div>
     </div>
   );
