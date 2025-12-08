@@ -199,7 +199,6 @@ export default function Home() {
         <div className="flex items-center justify-center min-h-[70vh]">
           <div className="w-full max-w-2xl">
             <div className="text-center mb-8">
-              <div className="text-4xl mb-3">⚡</div>
               <h1 className="text-3xl md:text-4xl font-bold text-terminal-textBright mb-1">
                 BASE TERMINAL
               </h1>
@@ -227,7 +226,6 @@ export default function Home() {
             <div className="terminal-card">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="text-xl">⚡</div>
                   <h1 className="text-lg md:text-xl font-bold text-terminal-textBright mb-0">
                     BASE TERMINAL
                   </h1>
