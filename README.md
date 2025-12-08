@@ -43,7 +43,7 @@ cp .env.example .env.local
 ### Environment Variables
 
 ```
-NEXT_PUBLIC_CAMBRIAN_API_KEY=your_api_key_here
+CAMBRIAN_API_KEY=your_api_key_here
 ```
 
 Get your API key at [cambrian.org](https://www.cambrian.org/).
