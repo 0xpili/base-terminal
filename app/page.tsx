@@ -192,44 +192,52 @@ export default function Home() {
     }
   };
 
+  const handleReset = () => {
+    setDashboardData(null);
+    setError(null);
+    setLoading(false);
+  };
+
   return (
     <main className="min-h-screen p-3 md:p-6">
-      {/* Centered Header + Search (when no data) */}
-      {!dashboardData && !loading && !error && (
-        <div className="flex items-center justify-center min-h-[70vh]">
-          <div className="w-full max-w-2xl">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl md:text-4xl font-bold text-terminal-textBright mb-1">
-                BASE TERMINAL
-              </h1>
-              <p className="text-terminal-textDim text-sm mb-6">
-                Powered by{' '}
-                <a
-                  href="https://www.cambrian.org/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-terminal-text hover:text-terminal-textBright underline"
-                >
-                  Cambrian API
-                </a>
-              </p>
+      <div className="max-w-6xl mx-auto">
+        {/* Centered Header + Search (when no data) */}
+        {!dashboardData && !loading && !error && (
+          <div className="flex items-center justify-center min-h-[70vh]">
+            <div className="w-full max-w-xl px-4">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl md:text-4xl font-bold text-terminal-textBright mb-2 tracking-wide">
+                  BASE TERMINAL
+                </h1>
+                <p className="text-terminal-textDim text-sm">
+                  Powered by{' '}
+                  <a
+                    href="https://www.cambrian.org/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-terminal-text hover:text-terminal-textBright underline"
+                  >
+                    Cambrian API
+                  </a>
+                </p>
+              </div>
+              <TokenSearch onSearch={handleSearch} isLoading={loading} minimal />
             </div>
-            <TokenSearch onSearch={handleSearch} isLoading={loading} minimal />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Compact Header (when data is shown) */}
-      {(dashboardData || loading || error) && (
-        <>
-          <header className="mb-4">
-            <div className="terminal-card">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg md:text-xl font-bold text-terminal-textBright mb-0">
-                    BASE TERMINAL
-                  </h1>
-                </div>
+        {/* Compact Header (when data is shown) */}
+        {(dashboardData || loading || error) && (
+          <>
+            <header className="mb-6">
+              <div className="flex items-center justify-between py-2">
+                <button
+                  onClick={handleReset}
+                  className="text-lg md:text-xl font-bold text-terminal-textBright hover:text-terminal-text transition-colors tracking-wide"
+                  title="Back to home"
+                >
+                  BASE TERMINAL
+                </button>
                 <p className="text-terminal-textDim text-xs hidden md:block">
                   Powered by{' '}
                   <a
@@ -242,28 +250,26 @@ export default function Home() {
                   </a>
                 </p>
               </div>
-            </div>
-          </header>
+            </header>
 
-          {/* Search */}
-          <TokenSearch onSearch={handleSearch} isLoading={loading} />
-        </>
-      )}
+            {/* Search */}
+            <TokenSearch onSearch={handleSearch} isLoading={loading} />
+          </>
+        )}
 
-      {/* Loading State */}
-      {loading && <LoadingSpinner />}
+        {/* Loading State */}
+        {loading && <LoadingSpinner />}
 
-      {/* Error State */}
-      {error && <ErrorMessage message={error} onRetry={handleRetry} />}
+        {/* Error State */}
+        {error && <ErrorMessage message={error} onRetry={handleRetry} />}
 
-      {/* Dashboard */}
-      {dashboardData && !loading && (
-        <div className="space-y-6">
-          {/* Token Header - Hero Style */}
-          <div className="terminal-card bg-gradient-to-br from-terminal-bg to-[#0d1117]">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="mb-3">
+        {/* Dashboard */}
+        {dashboardData && !loading && (
+          <div className="space-y-6">
+            {/* Token Header - Hero Style */}
+            <div className="terminal-card">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
                   <h2 className="text-2xl md:text-3xl font-bold text-terminal-textBright mb-1">
                     {dashboardData.token.symbol}
                   </h2>
@@ -271,87 +277,92 @@ export default function Home() {
                     {dashboardData.token.name}
                   </p>
                 </div>
-              </div>
-              <button
-                onClick={() => handleSearch(dashboardData.token.symbol)}
-                className="text-terminal-textDim hover:text-terminal-text transition-colors text-2xl"
-                title="Refresh data"
-              >
-                🔄
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-terminal-border">
-              <div>
-                <div className="text-terminal-textDim text-xs mb-1">[CONTRACT]</div>
-                <a
-                  href={getBaseScanUrl(dashboardData.token.address, 'token')}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-terminal-text hover:text-terminal-textBright font-mono text-xs underline break-all"
-                  title="View token on BaseScan"
+                <button
+                  onClick={() => handleSearch(dashboardData.token.symbol)}
+                  className="text-terminal-textDim hover:text-terminal-text transition-colors p-2 rounded hover:bg-terminal-border"
+                  title="Refresh data"
                 >
-                  {dashboardData.token.address}
-                </a>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                    <path d="M16 16h5v5"/>
+                  </svg>
+                </button>
               </div>
-              <div>
-                <div className="text-terminal-textDim text-xs mb-1">[DECIMALS]</div>
-                <span className="text-terminal-text text-sm font-mono">
-                  {dashboardData.token.decimals}
-                </span>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-terminal-border">
+                <div>
+                  <div className="text-terminal-textDim text-xs mb-1 uppercase tracking-wide">Contract</div>
+                  <a
+                    href={getBaseScanUrl(dashboardData.token.address, 'token')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-terminal-text hover:text-terminal-textBright font-mono text-xs underline break-all"
+                    title="View token on BaseScan"
+                  >
+                    {dashboardData.token.address}
+                  </a>
+                </div>
+                <div>
+                  <div className="text-terminal-textDim text-xs mb-1 uppercase tracking-wide">Decimals</div>
+                  <span className="text-terminal-text text-sm font-mono">
+                    {dashboardData.token.decimals}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <PriceOverviewCard
-              currentPrice={dashboardData.currentPrice}
-              priceHistory={dashboardData.priceHistory}
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <PriceOverviewCard
+                currentPrice={dashboardData.currentPrice}
+                priceHistory={dashboardData.priceHistory}
+              />
+              <TopHoldersCard holdersData={dashboardData.topHolders} />
+            </div>
+
+            {/* Pools Section - Load independently */}
+            <AerodromePoolsCard
+              pools={dashboardData.aerodomePools}
+              loading={loadingAerodomePools}
             />
-            <TopHoldersCard holdersData={dashboardData.topHolders} />
+            <OtherDEXPoolsCard
+              uniswapPools={dashboardData.uniswapPools}
+              pancakePools={dashboardData.pancakePools}
+              sushiPools={dashboardData.sushiPools}
+              alienPools={dashboardData.alienPools}
+              loading={loadingOtherPools}
+            />
           </div>
+        )}
 
-          {/* Pools Section - Load independently */}
-          <AerodromePoolsCard
-            pools={dashboardData.aerodomePools}
-            loading={loadingAerodomePools}
-          />
-          <OtherDEXPoolsCard
-            uniswapPools={dashboardData.uniswapPools}
-            pancakePools={dashboardData.pancakePools}
-            sushiPools={dashboardData.sushiPools}
-            alienPools={dashboardData.alienPools}
-            loading={loadingOtherPools}
-          />
-        </div>
-      )}
-
-      {/* Footer */}
-      <footer className="mt-12 mb-6">
-        <div className="text-center text-xs text-terminal-textDim border-t border-terminal-border pt-6">
-          <p>
-            made by{' '}
-            <a
-              href="https://0xpili.xyz/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-terminal-text hover:text-terminal-textBright underline"
-            >
-              pili
-            </a>
-            {' · '}
-            <a
-              href="https://github.com/0xpili/base-terminal"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-terminal-text hover:text-terminal-textBright underline"
-            >
-              GitHub Repository
-            </a>
-          </p>
-        </div>
-      </footer>
+        {/* Footer */}
+        <footer className="mt-16 py-6">
+          <div className="text-center text-xs text-terminal-textDim">
+            <p>
+              made by{' '}
+              <a
+                href="https://0xpili.xyz/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-terminal-text hover:text-terminal-textBright underline"
+              >
+                pili
+              </a>
+              {' · '}
+              <a
+                href="https://github.com/0xpili/base-terminal"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-terminal-text hover:text-terminal-textBright underline"
+              >
+                GitHub Repository
+              </a>
+            </p>
+          </div>
+        </footer>
+      </div>
     </main>
   );
 }
