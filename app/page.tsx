@@ -342,6 +342,15 @@ export default function Home() {
             >
               pili
             </a>
+            {' · '}
+            <a
+              href="https://github.com/0xpili/base-terminal"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-terminal-text hover:text-terminal-textBright underline"
+            >
+              GitHub Repository
+            </a>
           </p>
         </div>
       </footer>
