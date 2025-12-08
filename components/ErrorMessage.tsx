@@ -5,14 +5,14 @@ interface ErrorMessageProps {
 
 export default function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
   return (
-    <div className="terminal-card border-terminal-error">
-      <div className="flex items-start gap-4">
-        <div className="text-terminal-error text-2xl">⚠</div>
-        <div className="flex-1">
-          <h3 className="text-terminal-error font-bold mb-2">[ERROR]</h3>
-          <p className="text-terminal-text mb-4">{message}</p>
+    <div className="flex items-center justify-center min-h-[40vh]">
+      <div className="terminal-card border-terminal-error max-w-2xl">
+        <div className="text-center py-8">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h3 className="text-terminal-error font-bold text-xl mb-4">ERROR</h3>
+          <p className="text-terminal-text mb-6 px-4">{message}</p>
           {onRetry && (
-            <button onClick={onRetry} className="terminal-button text-sm">
+            <button onClick={onRetry} className="terminal-button">
               [RETRY]
             </button>
           )}

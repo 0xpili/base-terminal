@@ -194,17 +194,17 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-3 md:p-6">
-      {/* Header */}
-      <header className="mb-4">
-        <div className="terminal-card">
-          <div className="flex items-center gap-3">
-            <div className="text-2xl">⚡</div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-terminal-textBright mb-0">
+      {/* Centered Header + Search (when no data) */}
+      {!dashboardData && !loading && !error && (
+        <div className="flex items-center justify-center min-h-[70vh]">
+          <div className="w-full max-w-2xl">
+            <div className="text-center mb-8">
+              <div className="text-4xl mb-3">⚡</div>
+              <h1 className="text-3xl md:text-4xl font-bold text-terminal-textBright mb-1">
                 BASE TERMINAL
               </h1>
-              <p className="text-terminal-textDim text-xs md:text-sm">
-                {'>'} Powered by{' '}
+              <p className="text-terminal-textDim text-sm mb-6">
+                Powered by{' '}
                 <a
                   href="https://www.cambrian.org/"
                   target="_blank"
@@ -212,16 +212,45 @@ export default function Home() {
                   className="text-terminal-text hover:text-terminal-textBright underline"
                 >
                   Cambrian API
-                </a>{' '}
-                | BASE
+                </a>
               </p>
             </div>
+            <TokenSearch onSearch={handleSearch} isLoading={loading} minimal />
           </div>
         </div>
-      </header>
+      )}
 
-      {/* Search */}
-      <TokenSearch onSearch={handleSearch} isLoading={loading} />
+      {/* Compact Header (when data is shown) */}
+      {(dashboardData || loading || error) && (
+        <>
+          <header className="mb-4">
+            <div className="terminal-card">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="text-xl">⚡</div>
+                  <h1 className="text-lg md:text-xl font-bold text-terminal-textBright mb-0">
+                    BASE TERMINAL
+                  </h1>
+                </div>
+                <p className="text-terminal-textDim text-xs hidden md:block">
+                  Powered by{' '}
+                  <a
+                    href="https://www.cambrian.org/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-terminal-text hover:text-terminal-textBright underline"
+                  >
+                    Cambrian API
+                  </a>
+                </p>
+              </div>
+            </div>
+          </header>
+
+          {/* Search */}
+          <TokenSearch onSearch={handleSearch} isLoading={loading} />
+        </>
+      )}
 
       {/* Loading State */}
       {loading && <LoadingSpinner />}
@@ -231,47 +260,53 @@ export default function Home() {
 
       {/* Dashboard */}
       {dashboardData && !loading && (
-        <div className="space-y-4">
-          {/* Token Header */}
-          <div className="terminal-card">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-lg md:text-xl font-bold text-terminal-textBright mb-1">
-                  {dashboardData.token.name} ({dashboardData.token.symbol})
-                </h2>
-                <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 text-xs md:text-sm text-terminal-textDim">
-                  <div>
-                    <span className="mr-2">[CONTRACT]</span>
-                    <a
-                      href={getBaseScanUrl(dashboardData.token.address, 'token')}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-terminal-text hover:text-terminal-textBright font-mono text-xs underline"
-                      title="View token on BaseScan"
-                    >
-                      {dashboardData.token.address}
-                    </a>
-                  </div>
-                  <div>
-                    <span className="mr-2">[DECIMALS]</span>
-                    <span className="text-terminal-text">
-                      {dashboardData.token.decimals}
-                    </span>
-                  </div>
+        <div className="space-y-6">
+          {/* Token Header - Hero Style */}
+          <div className="terminal-card bg-gradient-to-br from-terminal-bg to-[#0d1117]">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="mb-3">
+                  <h2 className="text-2xl md:text-3xl font-bold text-terminal-textBright mb-1">
+                    {dashboardData.token.symbol}
+                  </h2>
+                  <p className="text-terminal-textDim text-sm">
+                    {dashboardData.token.name}
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => handleSearch(dashboardData.token.symbol)}
-                className="text-terminal-text hover:text-terminal-textBright transition-colors text-xs"
+                className="text-terminal-textDim hover:text-terminal-text transition-colors text-2xl"
                 title="Refresh data"
               >
                 🔄
               </button>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-terminal-border">
+              <div>
+                <div className="text-terminal-textDim text-xs mb-1">[CONTRACT]</div>
+                <a
+                  href={getBaseScanUrl(dashboardData.token.address, 'token')}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-terminal-text hover:text-terminal-textBright font-mono text-xs underline break-all"
+                  title="View token on BaseScan"
+                >
+                  {dashboardData.token.address}
+                </a>
+              </div>
+              <div>
+                <div className="text-terminal-textDim text-xs mb-1">[DECIMALS]</div>
+                <span className="text-terminal-text text-sm font-mono">
+                  {dashboardData.token.decimals}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Metrics Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <PriceOverviewCard
               currentPrice={dashboardData.currentPrice}
               priceHistory={dashboardData.priceHistory}
@@ -295,17 +330,17 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="mt-6 mb-3">
-        <div className="terminal-card text-center text-xs">
-          <p className="text-terminal-textDim">
-            made by <a href='https://0xpili.xyz/' target='_blank' className='text-terminal-text hover:text-terminal-textBright underline'>pili</a> |{' '}
+      <footer className="mt-12 mb-6">
+        <div className="text-center text-xs text-terminal-textDim border-t border-terminal-border pt-6">
+          <p>
+            made by{' '}
             <a
-              href="https://cambrian.org"
+              href="https://0xpili.xyz/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-terminal-text hover:text-terminal-textBright underline"
             >
-              cambrian.org
+              pili
             </a>
           </p>
         </div>
