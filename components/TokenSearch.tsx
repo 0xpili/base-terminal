@@ -110,9 +110,6 @@ export default function TokenSearch({ onSearch, isLoading = false, minimal = fal
         <p>
           {'>'} Examples: &quot;USDC&quot;, &quot;WETH&quot;, or paste contract address (0x...)
         </p>
-        <p className="mt-1">
-          {'>'} Chain: BASE (ID: 8453)
-        </p>
       </div>
     </div>
   );
