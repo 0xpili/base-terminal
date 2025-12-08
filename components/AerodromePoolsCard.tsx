@@ -89,7 +89,7 @@ export default function AerodromePoolsCard({ pools, loading = false }: Aerodrome
         </div>
         <button
           onClick={handleDownloadCSV}
-          className="text-terminal-text hover:text-terminal-textBright transition-colors text-sm px-2 py-1 border border-terminal-border hover:border-terminal-text rounded"
+          className="text-terminal-text hover:text-terminal-textBright transition-colors text-sm px-3 py-1 border border-terminal-border hover:border-terminal-text rounded min-w-[80px]"
           title="Download CSV"
         >
           💾 CSV
