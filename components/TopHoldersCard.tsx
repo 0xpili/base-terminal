@@ -57,7 +57,7 @@ export default function TopHoldersCard({ holdersData }: TopHoldersCardProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center">
           <span className="text-terminal-textBright mr-2 text-sm">{'>'}</span>
-          <h3 className="text-sm font-bold text-terminal-textBright m-0">TOP_HOLDERS.LOG</h3>
+          <h3 className="text-sm font-bold text-terminal-textBright m-0">TOP_HOLDERS</h3>
         </div>
         <button
           onClick={handleDownloadCSV}

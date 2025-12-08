@@ -84,7 +84,7 @@ export default function AerodromePoolsCard({ pools, loading = false }: Aerodrome
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <span className="text-terminal-textBright mr-2">{'>'}</span>
-          <h3 className="terminal-heading m-0">💧 AERODROME_POOLS.SYS</h3>
+          <h3 className="terminal-heading m-0">💧 AERODROME_POOLS</h3>
           <span className="ml-2 text-terminal-textDim text-sm">(Base&apos;s Leading DEX)</span>
         </div>
         <button

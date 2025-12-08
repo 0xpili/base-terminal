@@ -45,7 +45,7 @@ export default function PriceOverviewCard({ currentPrice, priceHistory }: PriceO
     <div className="terminal-card">
       <div className="flex items-center mb-3">
         <span className="text-terminal-textBright mr-2 text-sm">{'>'}</span>
-        <h3 className="text-sm font-bold text-terminal-textBright m-0">PRICE_OVERVIEW.DAT</h3>
+        <h3 className="text-sm font-bold text-terminal-textBright m-0">PRICE_OVERVIEW</h3>
       </div>
 
       <div className="space-y-3">

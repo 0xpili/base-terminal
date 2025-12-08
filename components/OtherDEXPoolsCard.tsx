@@ -137,7 +137,7 @@ export default function OtherDEXPoolsCard({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <span className="text-terminal-textBright mr-2">{'>'}</span>
-          <h3 className="terminal-heading m-0">🔄 OTHER_DEXES.CFG</h3>
+          <h3 className="terminal-heading m-0">🔄 OTHER_DEXES</h3>
         </div>
         <button
           onClick={handleDownloadCSV}
