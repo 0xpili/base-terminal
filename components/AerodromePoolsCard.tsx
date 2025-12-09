@@ -1,6 +1,6 @@
 'use client';
 
-import { formatCurrency, formatNumber, formatAddress, getBaseScanUrl } from '@/lib/utils';
+import { formatCurrency, formatAddress, getBaseScanUrl } from '@/lib/utils';
 import { convertToCSV, downloadCSV } from '@/lib/csv-utils';
 import type { AerodromePool } from '@/types/cambrian';
 

@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+
+/** Enable debug logging via browser console: window.__CAMBRIAN_DEBUG__ = true */
+const DEBUG = typeof window !== 'undefined' && (window as any).__CAMBRIAN_DEBUG__ === true;
 import TokenSearch from '@/components/TokenSearch';
 import PriceOverviewCard from '@/components/PriceOverviewCard';
 import TopHoldersCard from '@/components/TopHoldersCard';
@@ -41,7 +44,7 @@ function filterPoolsByToken(pools: UniswapV3Pool[] | undefined, tokenAddress: st
     return t0 === addrLower || t1 === addrLower;
   });
 
-  console.log(`[Filter] Pools containing ${tokenAddress}: ${filtered.length} of ${pools.length}`);
+  if (DEBUG) console.log(`[Filter] Pools containing ${tokenAddress}: ${filtered.length} of ${pools.length}`);
   return filtered;
 }
 
@@ -106,11 +109,11 @@ export default function Home() {
 
       // Step 3: Load Aerodrome pools first (fast, no enrichment needed)
       setLoadingAerodomePools(true);
-      console.log('[UI] Loading Aerodrome pools for token:', token.address);
+      if (DEBUG) console.log('[UI] Loading Aerodrome pools for token:', token.address);
 
       getAerodromeV2Pools(token.address, 100)
         .then((result) => {
-          console.log('[UI] Aerodrome pools loaded:', result.pools.length);
+          if (DEBUG) console.log('[UI] Aerodrome pools loaded:', result.pools.length);
           setDashboardData((prev) => ({
             ...prev!,
             aerodomePools: result.pools,
@@ -118,13 +121,13 @@ export default function Home() {
           setLoadingAerodomePools(false);
         })
         .catch((error) => {
-          console.error('[UI] Error loading Aerodrome pools:', error);
+          if (DEBUG) console.error('[UI] Error loading Aerodrome pools:', error);
           setLoadingAerodomePools(false);
         });
 
       // Step 4: Load Other DEX pools separately (slower, needs enrichment)
       setLoadingOtherPools(true);
-      console.log('[UI] Loading Other DEX pools for token:', token.address);
+      if (DEBUG) console.log('[UI] Loading Other DEX pools for token:', token.address);
 
       Promise.allSettled([
         getUniswapV3Pools(token.address, 100),
@@ -133,12 +136,14 @@ export default function Home() {
         getAlienV3Pools(token.address, 100),
       ])
         .then(async ([uniswapPools, pancakePools, sushiPools, alienPools]) => {
-          console.log('[UI] Other DEX pool lists loaded:', {
-            uniswap: uniswapPools.status === 'fulfilled' ? uniswapPools.value.pools.length : 'failed',
-            pancake: pancakePools.status === 'fulfilled' ? pancakePools.value.pools.length : 'failed',
-            sushi: sushiPools.status === 'fulfilled' ? sushiPools.value.pools.length : 'failed',
-            alien: alienPools.status === 'fulfilled' ? alienPools.value.pools.length : 'failed',
-          });
+          if (DEBUG) {
+            console.log('[UI] Other DEX pool lists loaded:', {
+              uniswap: uniswapPools.status === 'fulfilled' ? uniswapPools.value.pools.length : 'failed',
+              pancake: pancakePools.status === 'fulfilled' ? pancakePools.value.pools.length : 'failed',
+              sushi: sushiPools.status === 'fulfilled' ? sushiPools.value.pools.length : 'failed',
+              alien: alienPools.status === 'fulfilled' ? alienPools.value.pools.length : 'failed',
+            });
+          }
 
           // Enrich pools with detailed TVL data in parallel
           const [enrichedUniswap, enrichedPancake, enrichedSushi, enrichedAlien] =
@@ -157,7 +162,7 @@ export default function Home() {
                 : Promise.resolve([]),
             ]);
 
-          console.log('[UI] Other DEX pools enriched with TVL details');
+          if (DEBUG) console.log('[UI] Other DEX pools enriched with TVL details');
 
           // Apply final safety filter to ensure only pools with searched token are shown
           const filteredUniswap = enrichedUniswap.status === 'fulfilled'
@@ -185,7 +190,7 @@ export default function Home() {
           setLoadingOtherPools(false);
         })
         .catch((error) => {
-          console.error('[UI] Error loading Other DEX pools:', error);
+          if (DEBUG) console.error('[UI] Error loading Other DEX pools:', error);
           setLoadingOtherPools(false);
         });
     } catch (err) {

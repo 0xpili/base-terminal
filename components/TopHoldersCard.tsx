@@ -18,8 +18,8 @@ export default function TopHoldersCard({ holdersData }: TopHoldersCardProps) {
       await copyToClipboard(address);
       setCopiedAddress(address);
       setTimeout(() => setCopiedAddress(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
+    } catch {
+      // Silently fail if clipboard is unavailable
     }
   };
 

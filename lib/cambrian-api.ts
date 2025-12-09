@@ -14,6 +14,23 @@ import type {
 
 const BASE_CHAIN_ID = 8453; // Base chain ID
 
+/** Enable debug logging via environment variable or browser console */
+const DEBUG = typeof window !== 'undefined'
+  ? (window as any).__CAMBRIAN_DEBUG__ === true
+  : process.env.NODE_ENV === 'development';
+
+function debugLog(message: string, ...args: unknown[]): void {
+  if (DEBUG) {
+    console.log(message, ...args);
+  }
+}
+
+function debugWarn(message: string, ...args: unknown[]): void {
+  if (DEBUG) {
+    console.warn(message, ...args);
+  }
+}
+
 class CambrianAPIError extends Error {
   constructor(
     message: string,
@@ -203,14 +220,14 @@ export async function getAerodromeV2Pools(
   const data = await fetchCambrian<ColumnarResponse[]>('/evm/aero/v2/pools', {});
   const transformed = transformColumnarToObjects<any>(data);
 
-  console.log(`[Aerodrome V2] Total pools fetched: ${transformed.length}`);
+  debugLog(`[Aerodrome V2] Total pools fetched: ${transformed.length}`);
 
   // Filter by token if address provided (client-side filtering)
   let filtered = transformed;
   if (tokenAddress) {
     const addrLower = tokenAddress.toLowerCase();
-    console.log(`[Aerodrome V2] Filtering ${transformed.length} pools for token: ${tokenAddress}`);
-    console.log(`[Aerodrome V2] Sample pool tokens:`, transformed.slice(0, 3).map(p => ({
+    debugLog(`[Aerodrome V2] Filtering ${transformed.length} pools for token: ${tokenAddress}`);
+    debugLog(`[Aerodrome V2] Sample pool tokens:`, transformed.slice(0, 3).map(p => ({
       token0: p.token0 || p.token0Address,
       token1: p.token1 || p.token1Address
     })));
@@ -222,10 +239,10 @@ export async function getAerodromeV2Pools(
       return (t0 && t0.toLowerCase() === addrLower) ||
              (t1 && t1.toLowerCase() === addrLower);
     });
-    console.log(`[Aerodrome V2] Filtered pools for ${tokenAddress}: ${filtered.length}`);
+    debugLog(`[Aerodrome V2] Filtered pools for ${tokenAddress}: ${filtered.length}`);
 
     if (filtered.length > 0) {
-      console.log(`[Aerodrome V2] First matching pool:`, filtered[0]);
+      debugLog(`[Aerodrome V2] First matching pool:`, filtered[0]);
     }
   }
 
@@ -249,7 +266,7 @@ export async function getAerodromeV2Pools(
 
       // Data validation warnings
       if (pool.tvl_usd === 0 && pool.volume_24h === 0) {
-        console.warn(`[Aerodrome V2] Pool ${index + 1} has 0 TVL and 0 volume:`, {
+        debugWarn(`[Aerodrome V2] Pool ${index + 1} has 0 TVL and 0 volume:`, {
           pool: `${pool.token0_symbol}/${pool.token1_symbol}`,
           address: pool.pool_address,
           raw: item
@@ -328,12 +345,12 @@ async function getUniV3StylePools(
   const data = await fetchCambrian<ColumnarResponse[]>(endpoint, params);
   const transformed = transformColumnarToObjects<any>(data);
 
-  console.log(`[${dexName}] Total pools fetched: ${transformed.length}`);
+  debugLog(`[${dexName}] Total pools fetched: ${transformed.length}`);
 
   // DEBUG: Log actual field names from API response
   if (transformed.length > 0) {
-    console.log(`[${dexName}] Sample pool keys:`, Object.keys(transformed[0]));
-    console.log(`[${dexName}] Sample pool data:`, JSON.stringify(transformed[0], null, 2));
+    debugLog(`[${dexName}] Sample pool keys:`, Object.keys(transformed[0]));
+    debugLog(`[${dexName}] Sample pool data:`, JSON.stringify(transformed[0], null, 2));
   }
 
   // Filter out pools with missing token symbols or metadata
@@ -343,14 +360,14 @@ async function getUniV3StylePools(
     return hasToken0Symbol && hasToken1Symbol;
   });
 
-  console.log(`[${dexName}] Total pools after filtering invalid data: ${filtered.length} (removed ${transformed.length - filtered.length} incomplete pools)`);
+  debugLog(`[${dexName}] Total pools after filtering invalid data: ${filtered.length} (removed ${transformed.length - filtered.length} incomplete pools)`);
 
   // Filter by token if address provided - ALWAYS filter client-side since API may not support it
   if (tokenAddress) {
     const addrLower = tokenAddress.toLowerCase();
-    console.log(`[${dexName}] Filtering pools for token: ${tokenAddress}`);
+    debugLog(`[${dexName}] Filtering pools for token: ${tokenAddress}`);
     if (filtered.length > 0) {
-      console.log(`[${dexName}] Sample pool raw data:`, JSON.stringify(filtered[0], null, 2).slice(0, 500));
+      debugLog(`[${dexName}] Sample pool raw data:`, JSON.stringify(filtered[0], null, 2).slice(0, 500));
     }
 
     const beforeCount = filtered.length;
@@ -360,7 +377,7 @@ async function getUniV3StylePools(
       const token1Addr = (item.token1 || item.token1Address || item.token1_address || '').toLowerCase();
       return token0Addr === addrLower || token1Addr === addrLower;
     });
-    console.log(`[${dexName}] Filtered pools for ${tokenAddress}: ${filtered.length} (from ${beforeCount})`);
+    debugLog(`[${dexName}] Filtered pools for ${tokenAddress}: ${filtered.length} (from ${beforeCount})`);
   }
 
   const pools: UniswapV3Pool[] = filtered.slice(0, limit).map((item, index) => {
@@ -384,7 +401,7 @@ async function getUniV3StylePools(
 
       // Data validation warnings
       if (pool.tvl_usd === 0 && pool.volume_24h === 0) {
-        console.warn(`[${dexName}] Pool ${index + 1} has 0 TVL and 0 volume:`, {
+        debugWarn(`[${dexName}] Pool ${index + 1} has 0 TVL and 0 volume:`, {
           pool: `${pool.token0_symbol}/${pool.token1_symbol}`,
           address: pool.pool_address,
           raw: item
@@ -419,8 +436,8 @@ export async function enrichPoolsWithDetails(
   const MAX_POOLS_TO_ENRICH = 30;
   const poolsToEnrich = pools.slice(0, MAX_POOLS_TO_ENRICH);
 
-  console.log(`[${dex}] Starting enrichment for top ${poolsToEnrich.length} of ${pools.length} pools`);
-  console.log(`[${dex}] Pools before enrichment - with TVL: ${pools.filter(p => p.tvl_usd > 0).length}, without TVL: ${pools.filter(p => p.tvl_usd === 0).length}`);
+  debugLog(`[${dex}] Starting enrichment for top ${poolsToEnrich.length} of ${pools.length} pools`);
+  debugLog(`[${dex}] Pools before enrichment - with TVL: ${pools.filter(p => p.tvl_usd > 0).length}, without TVL: ${pools.filter(p => p.tvl_usd === 0).length}`);
 
   // Process pools in batches
   const BATCH_SIZE = 10;
@@ -448,7 +465,7 @@ export async function enrichPoolsWithDetails(
           // Enrichment returned empty data - keep original if it has data
           failCount++;
           if (pool.tvl_usd > 0 || pool.volume_24h > 0) {
-            console.log(`[${dex}] Enrichment returned empty for ${pool.token0_symbol}/${pool.token1_symbol} - keeping original data (TVL: $${pool.tvl_usd})`);
+            debugLog(`[${dex}] Enrichment returned empty for ${pool.token0_symbol}/${pool.token1_symbol} - keeping original data (TVL: $${pool.tvl_usd})`);
             return pool;
           }
           return null; // No data from either source
@@ -457,10 +474,10 @@ export async function enrichPoolsWithDetails(
         failCount++;
         // On error, keep original pool if it has data
         if (pool.tvl_usd > 0 || pool.volume_24h > 0) {
-          console.warn(`[${dex}] Enrichment failed for ${pool.token0_symbol}/${pool.token1_symbol} - keeping original data (TVL: $${pool.tvl_usd})`);
+          debugWarn(`[${dex}] Enrichment failed for ${pool.token0_symbol}/${pool.token1_symbol} - keeping original data (TVL: $${pool.tvl_usd})`);
           return pool;
         }
-        console.warn(`[${dex}] Enrichment failed for ${pool.pool_address} with no fallback data:`, error);
+        debugWarn(`[${dex}] Enrichment failed for ${pool.pool_address} with no fallback data:`, error);
         return null;
       }
     });
@@ -469,11 +486,11 @@ export async function enrichPoolsWithDetails(
     const validPools = batchResults.filter(pool => pool !== null) as UniswapV3Pool[];
     enrichedPools.push(...validPools);
 
-    console.log(`[${dex}] Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(poolsToEnrich.length / BATCH_SIZE)} complete - ${validPools.length} pools with data`);
+    debugLog(`[${dex}] Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(poolsToEnrich.length / BATCH_SIZE)} complete - ${validPools.length} pools with data`);
   }
 
-  console.log(`[${dex}] Enrichment complete - Success: ${successCount}, Failed: ${failCount}, Total returned: ${enrichedPools.length}`);
-  console.log(`[${dex}] After enrichment - with TVL: ${enrichedPools.filter(p => p.tvl_usd > 0).length}, with APR: ${enrichedPools.filter(p => p.fee_apr && p.fee_apr > 0).length}`);
+  debugLog(`[${dex}] Enrichment complete - Success: ${successCount}, Failed: ${failCount}, Total returned: ${enrichedPools.length}`);
+  debugLog(`[${dex}] After enrichment - with TVL: ${enrichedPools.filter(p => p.tvl_usd > 0).length}, with APR: ${enrichedPools.filter(p => p.fee_apr && p.fee_apr > 0).length}`);
 
   return enrichedPools as UniswapV3Pool[];
 }
@@ -490,8 +507,8 @@ export async function getUniswapV3PoolDetail(poolAddress: string): Promise<Unisw
 
     const item = transformed[0];
     // DEBUG: Log actual field names from pool detail API
-    console.log(`[Uniswap] Pool detail keys for ${poolAddress}:`, Object.keys(item));
-    console.log(`[Uniswap] Pool detail raw data:`, JSON.stringify(item, null, 2).slice(0, 1000));
+    debugLog(`[Uniswap] Pool detail keys for ${poolAddress}:`, Object.keys(item));
+    debugLog(`[Uniswap] Pool detail raw data:`, JSON.stringify(item, null, 2).slice(0, 1000));
 
     // Field mappings based on Cambrian API docs:
     // - poolTvlUSD: Total TVL (single Float64 value)
@@ -519,11 +536,11 @@ export async function getUniswapV3PoolDetail(poolAddress: string): Promise<Unisw
       fee_apr: Number(item.feeApr?.['1 day'] || item.feeAPR1d || item.fee_apr || item.feeAPR || 0),
     };
 
-    console.log(`[Uniswap] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
+    debugLog(`[Uniswap] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
 
     return poolDetail;
   } catch (error) {
-    console.error(`Failed to fetch Uniswap pool ${poolAddress}:`, error);
+    debugWarn(`Failed to fetch Uniswap pool ${poolAddress}:`, error);
     return null;
   }
 }
@@ -564,11 +581,11 @@ export async function getPancakeV3PoolDetail(poolAddress: string): Promise<Unisw
       fee_apr: Number(item.feeApr?.['1 day'] || item.feeAPR1d || item.fee_apr || item.feeAPR || 0),
     };
 
-    console.log(`[Pancake] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
+    debugLog(`[Pancake] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
 
     return poolDetail;
   } catch (error) {
-    console.error(`Failed to fetch PancakeSwap pool ${poolAddress}:`, error);
+    debugWarn(`Failed to fetch PancakeSwap pool ${poolAddress}:`, error);
     return null;
   }
 }
@@ -581,7 +598,7 @@ export async function getSushiV3PoolDetail(poolAddress: string): Promise<Uniswap
     });
     const transformed = transformColumnarToObjects<any>(data);
     if (transformed.length === 0) {
-      console.warn(`[Sushi] No data returned for pool ${poolAddress}`);
+      debugWarn(`[Sushi] No data returned for pool ${poolAddress}`);
       return null;
     }
 
@@ -612,11 +629,11 @@ export async function getSushiV3PoolDetail(poolAddress: string): Promise<Uniswap
       fee_apr: Number(item.feeApr?.['1 day'] || item.feeAPR1d || item.fee_apr || item.feeAPR || 0),
     };
 
-    console.log(`[Sushi] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
+    debugLog(`[Sushi] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
 
     return poolDetail;
   } catch (error) {
-    console.error(`Failed to fetch Sushi pool ${poolAddress}:`, error);
+    debugWarn(`Failed to fetch Sushi pool ${poolAddress}:`, error);
     return null;
   }
 }
@@ -657,11 +674,11 @@ export async function getAlienV3PoolDetail(poolAddress: string): Promise<Uniswap
       fee_apr: Number(item.feeApr?.['1 day'] || item.feeAPR1d || item.fee_apr || item.feeAPR || 0),
     };
 
-    console.log(`[Alien] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
+    debugLog(`[Alien] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
 
     return poolDetail;
   } catch (error) {
-    console.error(`Failed to fetch Alien pool ${poolAddress}:`, error);
+    debugWarn(`Failed to fetch Alien pool ${poolAddress}:`, error);
     return null;
   }
 }
@@ -694,7 +711,7 @@ export async function getAerodromeV3PoolDetail(poolAddress: string): Promise<Uni
       created_timestamp: new Date(item.createdAt || item.createdTimestamp || Date.now()).getTime() / 1000,
     };
   } catch (error) {
-    console.error(`Failed to fetch Aerodrome V3 pool ${poolAddress}:`, error);
+    debugWarn(`Failed to fetch Aerodrome V3 pool ${poolAddress}:`, error);
     return null;
   }
 }
@@ -799,7 +816,7 @@ export async function searchToken(query: string): Promise<TokensResponse> {
 
     return { tokens: filtered, total_count: filtered.length };
   } catch (error) {
-    console.error('Search token error:', error);
+    debugWarn('Search token error:', error);
     throw error;
   }
 }

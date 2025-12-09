@@ -1,8 +1,11 @@
 'use client';
 
-import { formatCurrency, formatNumber, formatAddress, getBaseScanUrl } from '@/lib/utils';
+import { formatCurrency, formatAddress, getBaseScanUrl } from '@/lib/utils';
 import { convertToCSV, downloadCSV } from '@/lib/csv-utils';
 import type { UniswapV3Pool } from '@/types/cambrian';
+
+/** Enable debug logging via browser console: window.__CAMBRIAN_DEBUG__ = true */
+const DEBUG = typeof window !== 'undefined' && (window as any).__CAMBRIAN_DEBUG__ === true;
 
 interface OtherDEXPoolsCardProps {
   uniswapPools?: UniswapV3Pool[];
@@ -41,14 +44,16 @@ export default function OtherDEXPoolsCard({
     ...alienPools.map(p => ({ ...p, dex: 'Alien V3' })),
   ];
 
-  // Log what we received
-  console.log('[OtherDEXPools] Received pools:', {
-    uniswap: uniswapPools.length,
-    pancake: pancakePools.length,
-    sushi: sushiPools.length,
-    alien: alienPools.length,
-    total: allPools.length
-  });
+  // Log what we received (debug mode only)
+  if (DEBUG) {
+    console.log('[OtherDEXPools] Received pools:', {
+      uniswap: uniswapPools.length,
+      pancake: pancakePools.length,
+      sushi: sushiPools.length,
+      alien: alienPools.length,
+      total: allPools.length
+    });
+  }
 
   // Show ALL pools - if enrichment returned them, they're valid
   // Only filter out truly empty pools (no data at all)
@@ -61,27 +66,24 @@ export default function OtherDEXPoolsCard({
 
     const keepPool = hasTVL || hasFeeAPR || hasVolume || hasFeeTier;
 
-    if (!keepPool) {
+    if (!keepPool && DEBUG) {
       console.log('[OtherDEXPools] Filtering out pool:', {
         pair: `${pool.token0_symbol}/${pool.token1_symbol}`,
         dex: pool.dex,
-        tvl: pool.tvl_usd,
-        apr: pool.fee_apr,
-        volume: pool.volume_24h,
-        feeTier: pool.fee_tier
+        tvl: pool.tvl_usd
       });
     }
 
     return keepPool;
   });
 
-  console.log('[OtherDEXPools] After filtering:', {
-    total: filteredPools.length,
-    withTVL: filteredPools.filter(p => p.tvl_usd > 0).length,
-    withAPR: filteredPools.filter(p => p.fee_apr && p.fee_apr > 0).length,
-    withVolume: filteredPools.filter(p => p.volume_24h > 0).length,
-    withFeeTier: filteredPools.filter(p => p.fee_tier > 0).length
-  });
+  if (DEBUG) {
+    console.log('[OtherDEXPools] After filtering:', {
+      total: filteredPools.length,
+      withTVL: filteredPools.filter(p => p.tvl_usd > 0).length,
+      withAPR: filteredPools.filter(p => p.fee_apr && p.fee_apr > 0).length
+    });
+  }
 
   // Sort pools by TVL (highest first)
   const sortedPools = [...filteredPools].sort((a, b) => {
@@ -90,11 +92,13 @@ export default function OtherDEXPoolsCard({
     return tvlB - tvlA; // Descending order
   });
 
-  console.log('[OtherDEXPools] Top 3 pools by TVL:', sortedPools.slice(0, 3).map(p => ({
-    pair: `${p.token0_symbol}/${p.token1_symbol}`,
-    dex: p.dex,
-    tvl: p.tvl_usd
-  })));
+  if (DEBUG) {
+    console.log('[OtherDEXPools] Top pools by TVL:', sortedPools.slice(0, 3).map(p => ({
+      pair: `${p.token0_symbol}/${p.token1_symbol}`,
+      dex: p.dex,
+      tvl: p.tvl_usd
+    })));
+  }
 
   const handleDownloadCSV = () => {
     if (allPools.length === 0) return;

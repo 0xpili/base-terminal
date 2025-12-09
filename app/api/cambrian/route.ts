@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const CAMBRIAN_BASE_URL = 'https://opabinia.cambrian.network/api/v1';
+const CAMBRIAN_BASE_URL = process.env.CAMBRIAN_API_URL || 'https://opabinia.cambrian.network/api/v1';
+
+/** Enable debug logging in development */
+const DEBUG = process.env.NODE_ENV === 'development';
 
 // Simple in-memory cache with TTL
 const cache = new Map<string, { data: any; expires: number }>();
@@ -64,12 +67,12 @@ export async function GET(request: NextRequest) {
     // Check cache first
     const cachedData = getFromCache(cacheKey);
     if (cachedData) {
-      console.log('Cache hit for:', cambrianUrl.toString());
+      if (DEBUG) console.log('[Cambrian API] Cache hit:', endpoint);
       return NextResponse.json(cachedData);
     }
 
     // Make the request to Cambrian API
-    console.log('Fetching from Cambrian API:', cambrianUrl.toString());
+    if (DEBUG) console.log('[Cambrian API] Fetching:', endpoint);
 
     const response = await fetch(cambrianUrl.toString(), {
       method: 'GET',
@@ -79,16 +82,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log('Cambrian API response status:', response.status);
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('Cambrian API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-        url: cambrianUrl.toString()
-      });
+      if (DEBUG) {
+        console.error('[Cambrian API] Error:', {
+          status: response.status,
+          endpoint,
+          error: errorData
+        });
+      }
 
       return NextResponse.json(
         {
@@ -109,7 +111,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Cambrian API proxy error:', error);
+    if (DEBUG) console.error('[Cambrian API] Proxy error:', error);
     return NextResponse.json(
       {
         error: 'Internal server error',
