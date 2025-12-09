@@ -10,6 +10,17 @@ export function formatCurrency(value: number, decimals: number = 2): string {
   if (value >= 1_000) {
     return `$${(value / 1_000).toFixed(decimals)}K`;
   }
+  // For very small values, show all significant digits
+  if (value > 0 && value < 0.0001) {
+    // Count leading zeros after decimal point and show meaningful digits
+    const str = value.toFixed(20);
+    const match = str.match(/^0\.(0*)([1-9]\d{0,3})/);
+    if (match) {
+      const zeros = match[1].length;
+      const significantDigits = match[2];
+      return `$0.${'0'.repeat(zeros)}${significantDigits}`;
+    }
+  }
   return `$${value.toFixed(decimals)}`;
 }
 

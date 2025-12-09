@@ -21,7 +21,6 @@ import {
   enrichPoolsWithDetails,
   CambrianAPIError,
 } from '@/lib/cambrian-api';
-import { getBaseScanUrl } from '@/lib/utils';
 import type {
   Token,
   PriceCurrentResponse,
@@ -266,58 +265,13 @@ export default function Home() {
         {/* Dashboard */}
         {dashboardData && !loading && (
           <div className="space-y-6">
-            {/* Token Header - Hero Style */}
-            <div className="terminal-card">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h2 className="text-2xl md:text-3xl font-bold text-terminal-textBright mb-1">
-                    {dashboardData.token.symbol}
-                  </h2>
-                  <p className="text-terminal-textDim text-sm">
-                    {dashboardData.token.name}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleSearch(dashboardData.token.symbol)}
-                  className="text-terminal-textDim hover:text-terminal-text transition-colors p-2 rounded hover:bg-terminal-border"
-                  title="Refresh data"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                    <path d="M3 3v5h5"/>
-                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                    <path d="M16 16h5v5"/>
-                  </svg>
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-terminal-border">
-                <div>
-                  <div className="text-terminal-textDim text-xs mb-1 uppercase tracking-wide">Contract</div>
-                  <a
-                    href={getBaseScanUrl(dashboardData.token.address, 'token')}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-terminal-text hover:text-terminal-textBright font-mono text-xs underline break-all"
-                    title="View token on BaseScan"
-                  >
-                    {dashboardData.token.address}
-                  </a>
-                </div>
-                <div>
-                  <div className="text-terminal-textDim text-xs mb-1 uppercase tracking-wide">Decimals</div>
-                  <span className="text-terminal-text text-sm font-mono">
-                    {dashboardData.token.decimals}
-                  </span>
-                </div>
-              </div>
-            </div>
-
             {/* Metrics Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <PriceOverviewCard
+                token={dashboardData.token}
                 currentPrice={dashboardData.currentPrice}
                 priceHistory={dashboardData.priceHistory}
+                onRefresh={() => handleSearch(dashboardData.token.symbol)}
               />
               <TopHoldersCard holdersData={dashboardData.topHolders} />
             </div>

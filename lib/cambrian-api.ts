@@ -748,12 +748,36 @@ export async function searchToken(query: string): Promise<TokensResponse> {
       return { tokens: filtered, total_count: filtered.length };
     }
 
-    // Otherwise search by symbol or name
+    // Search by symbol or name
     const filtered = tokensResponse.tokens.filter(
       (t) =>
         t.symbol.toLowerCase().includes(normalizedQuery) ||
         t.name.toLowerCase().includes(normalizedQuery)
     );
+
+    // Sort results: exact symbol match first, then exact name match, then partial matches
+    filtered.sort((a, b) => {
+      const aSymbolExact = a.symbol.toLowerCase() === normalizedQuery;
+      const bSymbolExact = b.symbol.toLowerCase() === normalizedQuery;
+      const aNameExact = a.name.toLowerCase() === normalizedQuery;
+      const bNameExact = b.name.toLowerCase() === normalizedQuery;
+
+      // Exact symbol match has highest priority
+      if (aSymbolExact && !bSymbolExact) return -1;
+      if (bSymbolExact && !aSymbolExact) return 1;
+
+      // Then exact name match
+      if (aNameExact && !bNameExact) return -1;
+      if (bNameExact && !aNameExact) return 1;
+
+      // Then symbol starts with query
+      const aSymbolStarts = a.symbol.toLowerCase().startsWith(normalizedQuery);
+      const bSymbolStarts = b.symbol.toLowerCase().startsWith(normalizedQuery);
+      if (aSymbolStarts && !bSymbolStarts) return -1;
+      if (bSymbolStarts && !aSymbolStarts) return 1;
+
+      return 0;
+    });
 
     return { tokens: filtered, total_count: filtered.length };
   } catch (error) {

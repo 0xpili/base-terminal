@@ -69,77 +69,56 @@ export default function TopHoldersCard({ holdersData }: TopHoldersCardProps) {
       </div>
 
       {/* Summary Stats */}
-      <div className="mb-3 pb-3 border-b border-terminal-border">
-        <div className="text-center">
-          <div className="text-terminal-textDim text-xs mb-1">[TOP_10_CONCENTRATION]</div>
-          <div className="text-terminal-text text-xl font-bold">
-            {holdersData.top_10_concentration?.toFixed(2) || 'N/A'}%
-          </div>
-          <div className="text-terminal-textDim text-xs mt-0.5">
-            Supply held by top 10 addresses
-          </div>
+      <div className="text-center mb-3 pb-3 border-b border-terminal-border">
+        <div className="text-2xl font-bold text-terminal-textBright">
+          {holdersData.top_10_concentration?.toFixed(2) || 'N/A'}%
+        </div>
+        <div className="text-terminal-textDim text-xs">
+          Supply held by top 10 addresses
         </div>
       </div>
 
-      {/* Holders List */}
-      <div className="space-y-2">
+      {/* Holders List - Compact */}
+      <div className="space-y-1.5">
         {holdersData.holders.slice(0, showAll ? 10 : 5).map((holder, index) => (
           <div
             key={holder.holder_address}
-            className="border border-terminal-border rounded p-2 hover:border-terminal-text transition-colors"
+            className="border border-terminal-border rounded p-1.5 hover:border-terminal-text transition-colors"
           >
-            <div className="flex justify-between items-start mb-1.5">
-              <div className="flex items-center gap-2">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1.5">
                 <span className="text-terminal-textBright font-bold text-xs">
                   [{index + 1}]
                 </span>
-                <div className="flex items-center gap-1">
-                  <a
-                    href={getBaseScanUrl(holder.holder_address)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-terminal-text hover:text-terminal-textBright transition-colors font-mono text-xs underline"
-                    title="View on BaseScan"
-                  >
-                    {formatAddress(holder.holder_address, 6)}
-                  </a>
-                  <button
-                    onClick={() => handleCopy(holder.holder_address)}
-                    className="text-terminal-textDim hover:text-terminal-text transition-colors text-xs"
-                    title="Copy address"
-                  >
-                    {copiedAddress === holder.holder_address ? '✓' : '📋'}
-                  </button>
-                </div>
+                <a
+                  href={getBaseScanUrl(holder.holder_address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-terminal-text hover:text-terminal-textBright transition-colors font-mono text-xs underline"
+                  title="View on BaseScan"
+                >
+                  {formatAddress(holder.holder_address, 6)}
+                </a>
+                <button
+                  onClick={() => handleCopy(holder.holder_address)}
+                  className="text-terminal-textDim hover:text-terminal-text transition-colors text-xs"
+                  title="Copy address"
+                >
+                  {copiedAddress === holder.holder_address ? '✓' : '📋'}
+                </button>
               </div>
-              <div className="text-right">
-                <div className="text-terminal-textBright font-bold text-sm">
-                  {holder.percentage?.toFixed(2) || '0.00'}%
-                </div>
+              <div className="text-terminal-textBright font-bold text-sm">
+                {holder.percentage?.toFixed(2) || '0.00'}%
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="text-terminal-textDim">Balance: </span>
-                <span className="text-terminal-text">
-                  {formatNumber(parseFloat(holder.balance))}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-terminal-textDim">Value: </span>
-                <span className="text-terminal-text">
-                  {formatCurrency(holder.balance_usd)}
-                </span>
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div className="mt-1.5 h-0.5 bg-terminal-bg rounded overflow-hidden">
-              <div
-                className="h-full bg-terminal-text transition-all"
-                style={{ width: `${Math.min(holder.percentage || 0, 100)}%` }}
-              />
+            <div className="flex justify-between text-xs mt-1">
+              <span className="text-terminal-textDim">
+                {formatNumber(parseFloat(holder.balance))}
+              </span>
+              <span className="text-terminal-text">
+                {formatCurrency(holder.balance_usd)}
+              </span>
             </div>
           </div>
         ))}
@@ -147,10 +126,10 @@ export default function TopHoldersCard({ holdersData }: TopHoldersCardProps) {
 
       {/* Expand/Collapse Button */}
       {holdersData.holders.length > 5 && (
-        <div className="text-center mt-3">
+        <div className="text-center mt-2">
           <button
             onClick={() => setShowAll(!showAll)}
-            className="text-terminal-text hover:text-terminal-textBright text-xs transition-colors px-3 py-1.5 border border-terminal-border hover:border-terminal-text rounded"
+            className="text-terminal-text hover:text-terminal-textBright text-xs transition-colors px-3 py-1 border border-terminal-border hover:border-terminal-text rounded"
           >
             {showAll ? '▲ Less' : '▼ More'}
           </button>
