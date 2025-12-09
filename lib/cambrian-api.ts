@@ -330,6 +330,12 @@ async function getUniV3StylePools(
 
   console.log(`[${dexName}] Total pools fetched: ${transformed.length}`);
 
+  // DEBUG: Log actual field names from API response
+  if (transformed.length > 0) {
+    console.log(`[${dexName}] Sample pool keys:`, Object.keys(transformed[0]));
+    console.log(`[${dexName}] Sample pool data:`, JSON.stringify(transformed[0], null, 2));
+  }
+
   // Filter out pools with missing token symbols or metadata
   let filtered = transformed.filter(item => {
     const hasToken0Symbol = item.token0Symbol && item.token0Symbol.trim() !== '';
@@ -339,22 +345,22 @@ async function getUniV3StylePools(
 
   console.log(`[${dexName}] Total pools after filtering invalid data: ${filtered.length} (removed ${transformed.length - filtered.length} incomplete pools)`);
 
-  // Filter by token if address provided
+  // Filter by token if address provided - ALWAYS filter client-side since API may not support it
   if (tokenAddress) {
     const addrLower = tokenAddress.toLowerCase();
     console.log(`[${dexName}] Filtering pools for token: ${tokenAddress}`);
-    console.log(`[${dexName}] Sample pool token addresses:`, filtered.slice(0, 3).map(p => ({
-      token0: p.token0 || p.token0Address,
-      token1: p.token1 || p.token1Address
-    })));
+    if (filtered.length > 0) {
+      console.log(`[${dexName}] Sample pool raw data:`, JSON.stringify(filtered[0], null, 2).slice(0, 500));
+    }
 
-    filtered = filtered.filter(item =>
-      (item.token0 && item.token0.toLowerCase() === addrLower) ||
-      (item.token0Address && item.token0Address.toLowerCase() === addrLower) ||
-      (item.token1 && item.token1.toLowerCase() === addrLower) ||
-      (item.token1Address && item.token1Address.toLowerCase() === addrLower)
-    );
-    console.log(`[${dexName}] Filtered pools for ${tokenAddress}: ${filtered.length}`);
+    const beforeCount = filtered.length;
+    filtered = filtered.filter(item => {
+      // Check all possible field names for token addresses
+      const token0Addr = (item.token0 || item.token0Address || item.token0_address || '').toLowerCase();
+      const token1Addr = (item.token1 || item.token1Address || item.token1_address || '').toLowerCase();
+      return token0Addr === addrLower || token1Addr === addrLower;
+    });
+    console.log(`[${dexName}] Filtered pools for ${tokenAddress}: ${filtered.length} (from ${beforeCount})`);
   }
 
   const pools: UniswapV3Pool[] = filtered.slice(0, limit).map((item, index) => {
@@ -483,6 +489,11 @@ export async function getUniswapV3PoolDetail(poolAddress: string): Promise<Unisw
     if (transformed.length === 0) return null;
 
     const item = transformed[0];
+    // DEBUG: Log actual field names from pool detail API
+    console.log(`[Uniswap] Pool detail keys for ${poolAddress}:`, Object.keys(item));
+    console.log(`[Uniswap] Pool detail raw data:`, JSON.stringify(item, null, 2).slice(0, 1000));
+
+    // Field mappings based on Cambrian API docs - time-ranged fields like tvlUSD1d, volumeUSD1d, etc.
     const poolDetail = {
       pool_address: item.poolId || item.poolAddress || item.pool_address || poolAddress,
       token0_address: item.token0 || item.token0Address || item.token0_address,
@@ -492,22 +503,20 @@ export async function getUniswapV3PoolDetail(poolAddress: string): Promise<Unisw
       token1_symbol: item.token1Symbol || item.token1_symbol,
       token1_decimals: Number(item.token1Decimals || item.token1_decimals || 18),
       fee_tier: Number(item.feeTier || item.fee_tier || item.fee || 0),
-      tvl_usd: Number(item.tvlUSD1d || item.poolTvlUSD || item.tvlUSD || item.tvl_usd || item.tvl || 0),
+      // TVL: prioritize time-ranged fields (tvlUSD1d = 1 day TVL)
+      tvl_usd: Number(item.tvlUSD1d || item.tvlUSD1h || item.tvlUSD || item.poolTvlUSD || item.tvl_usd || item.tvl || 0),
+      // Volume: prioritize time-ranged fields
       volume_24h: Number(item.volumeUSD1d || item.volume24hUSD || item.volume24h || item.volume_24h || 0),
       volume_1h: Number(item.volumeUSD1h || item.volume1hUSD || item.volume1h || item.volume_1h || 0),
       volume_7d: Number(item.volumeUSD7d || item.volume7dUSD || item.volume7d || item.volume_7d || 0),
       swap_count_24h: Number(item.swapCount1d || item.swapCount24h || item.swap_count_24h || 0),
       unique_users_24h: Number(item.uniqueUsers1d || item.uniqueUsers24h || item.unique_users_24h || 0),
       created_timestamp: new Date(item.createdAt || item.createdTimestamp || Date.now()).getTime() / 1000,
-      fee_apr: Number(item.feeAPR1d || item.fee_apr || item.feeAPR || 0),
+      // Fee APR: prioritize time-ranged fields (feeAPR1d = 1 day APR)
+      fee_apr: Number(item.feeAPR1d || item.feeAPR7d || item.fee_apr || item.feeAPR || 0),
     };
 
-    console.log(`[Uniswap] Pool ${poolAddress} detail:`, {
-      tvl: poolDetail.tvl_usd,
-      volume_24h: poolDetail.volume_24h,
-      fee_apr: poolDetail.fee_apr,
-      raw_item: item
-    });
+    console.log(`[Uniswap] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
 
     return poolDetail;
   } catch (error) {
@@ -526,6 +535,10 @@ export async function getPancakeV3PoolDetail(poolAddress: string): Promise<Unisw
     if (transformed.length === 0) return null;
 
     const item = transformed[0];
+    // DEBUG: Log actual field names from pool detail API
+    console.log(`[Pancake] Pool detail keys for ${poolAddress}:`, Object.keys(item));
+
+    // Field mappings based on Cambrian API docs - time-ranged fields like tvlUSD1d, volumeUSD1d, etc.
     const poolDetail = {
       pool_address: item.poolId || item.poolAddress || item.pool_address || poolAddress,
       token0_address: item.token0 || item.token0Address || item.token0_address,
@@ -535,22 +548,20 @@ export async function getPancakeV3PoolDetail(poolAddress: string): Promise<Unisw
       token1_symbol: item.token1Symbol || item.token1_symbol,
       token1_decimals: Number(item.token1Decimals || item.token1_decimals || 18),
       fee_tier: Number(item.feeTier || item.fee_tier || item.fee || 0),
-      tvl_usd: Number(item.tvlUSD1d || item.poolTvlUSD || item.tvlUSD || item.tvl_usd || item.tvl || 0),
+      // TVL: prioritize time-ranged fields (tvlUSD1d = 1 day TVL)
+      tvl_usd: Number(item.tvlUSD1d || item.tvlUSD1h || item.tvlUSD || item.poolTvlUSD || item.tvl_usd || item.tvl || 0),
+      // Volume: prioritize time-ranged fields
       volume_24h: Number(item.volumeUSD1d || item.volume24hUSD || item.volume24h || item.volume_24h || 0),
       volume_1h: Number(item.volumeUSD1h || item.volume1hUSD || item.volume1h || item.volume_1h || 0),
       volume_7d: Number(item.volumeUSD7d || item.volume7dUSD || item.volume7d || item.volume_7d || 0),
       swap_count_24h: Number(item.swapCount1d || item.swapCount24h || item.swap_count_24h || 0),
       unique_users_24h: Number(item.uniqueUsers1d || item.uniqueUsers24h || item.unique_users_24h || 0),
       created_timestamp: new Date(item.createdAt || item.createdTimestamp || Date.now()).getTime() / 1000,
-      fee_apr: Number(item.feeAPR1d || item.fee_apr || item.feeAPR || 0),
+      // Fee APR: prioritize time-ranged fields (feeAPR1d = 1 day APR)
+      fee_apr: Number(item.feeAPR1d || item.feeAPR7d || item.fee_apr || item.feeAPR || 0),
     };
 
-    console.log(`[Pancake] Pool ${poolAddress} detail:`, {
-      tvl: poolDetail.tvl_usd,
-      volume_24h: poolDetail.volume_24h,
-      fee_apr: poolDetail.fee_apr,
-      raw_item: item
-    });
+    console.log(`[Pancake] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
 
     return poolDetail;
   } catch (error) {
@@ -572,6 +583,11 @@ export async function getSushiV3PoolDetail(poolAddress: string): Promise<Uniswap
     }
 
     const item = transformed[0];
+    // DEBUG: Log actual field names from pool detail API
+    console.log(`[Sushi] Pool detail keys for ${poolAddress}:`, Object.keys(item));
+    console.log(`[Sushi] Pool detail raw data:`, JSON.stringify(item, null, 2).slice(0, 1000));
+
+    // Field mappings based on Cambrian API docs - time-ranged fields like tvlUSD1d, volumeUSD1d, etc.
     const poolDetail = {
       pool_address: item.poolId || item.poolAddress || item.pool_address || poolAddress,
       token0_address: item.token0 || item.token0Address || item.token0_address,
@@ -581,22 +597,20 @@ export async function getSushiV3PoolDetail(poolAddress: string): Promise<Uniswap
       token1_symbol: item.token1Symbol || item.token1_symbol,
       token1_decimals: Number(item.token1Decimals || item.token1_decimals || 18),
       fee_tier: Number(item.feeTier || item.fee_tier || item.fee || 0),
-      tvl_usd: Number(item.tvlUSD1d || item.poolTvlUSD || item.tvlUSD || item.tvl_usd || item.tvl || 0),
+      // TVL: prioritize time-ranged fields (tvlUSD1d = 1 day TVL)
+      tvl_usd: Number(item.tvlUSD1d || item.tvlUSD1h || item.tvlUSD || item.poolTvlUSD || item.tvl_usd || item.tvl || 0),
+      // Volume: prioritize time-ranged fields
       volume_24h: Number(item.volumeUSD1d || item.volume24hUSD || item.volume24h || item.volume_24h || 0),
       volume_1h: Number(item.volumeUSD1h || item.volume1hUSD || item.volume1h || item.volume_1h || 0),
       volume_7d: Number(item.volumeUSD7d || item.volume7dUSD || item.volume7d || item.volume_7d || 0),
       swap_count_24h: Number(item.swapCount1d || item.swapCount24h || item.swap_count_24h || 0),
       unique_users_24h: Number(item.uniqueUsers1d || item.uniqueUsers24h || item.unique_users_24h || 0),
       created_timestamp: new Date(item.createdAt || item.createdTimestamp || Date.now()).getTime() / 1000,
-      fee_apr: Number(item.feeAPR1d || item.fee_apr || item.feeAPR || 0),
+      // Fee APR: prioritize time-ranged fields (feeAPR1d = 1 day APR)
+      fee_apr: Number(item.feeAPR1d || item.feeAPR7d || item.fee_apr || item.feeAPR || 0),
     };
 
-    console.log(`[Sushi] Pool ${poolAddress} detail:`, {
-      tvl: poolDetail.tvl_usd,
-      volume_24h: poolDetail.volume_24h,
-      fee_apr: poolDetail.fee_apr,
-      raw_item: item
-    });
+    console.log(`[Sushi] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
 
     return poolDetail;
   } catch (error) {
@@ -615,6 +629,10 @@ export async function getAlienV3PoolDetail(poolAddress: string): Promise<Uniswap
     if (transformed.length === 0) return null;
 
     const item = transformed[0];
+    // DEBUG: Log actual field names from pool detail API
+    console.log(`[Alien] Pool detail keys for ${poolAddress}:`, Object.keys(item));
+
+    // Field mappings based on Cambrian API docs - time-ranged fields like tvlUSD1d, volumeUSD1d, etc.
     const poolDetail = {
       pool_address: item.poolId || item.poolAddress || item.pool_address || poolAddress,
       token0_address: item.token0 || item.token0Address || item.token0_address,
@@ -624,22 +642,20 @@ export async function getAlienV3PoolDetail(poolAddress: string): Promise<Uniswap
       token1_symbol: item.token1Symbol || item.token1_symbol,
       token1_decimals: Number(item.token1Decimals || item.token1_decimals || 18),
       fee_tier: Number(item.feeTier || item.fee_tier || item.fee || 0),
-      tvl_usd: Number(item.tvlUSD1d || item.poolTvlUSD || item.tvlUSD || item.tvl_usd || item.tvl || 0),
+      // TVL: prioritize time-ranged fields (tvlUSD1d = 1 day TVL)
+      tvl_usd: Number(item.tvlUSD1d || item.tvlUSD1h || item.tvlUSD || item.poolTvlUSD || item.tvl_usd || item.tvl || 0),
+      // Volume: prioritize time-ranged fields
       volume_24h: Number(item.volumeUSD1d || item.volume24hUSD || item.volume24h || item.volume_24h || 0),
       volume_1h: Number(item.volumeUSD1h || item.volume1hUSD || item.volume1h || item.volume_1h || 0),
       volume_7d: Number(item.volumeUSD7d || item.volume7dUSD || item.volume7d || item.volume_7d || 0),
       swap_count_24h: Number(item.swapCount1d || item.swapCount24h || item.swap_count_24h || 0),
       unique_users_24h: Number(item.uniqueUsers1d || item.uniqueUsers24h || item.unique_users_24h || 0),
       created_timestamp: new Date(item.createdAt || item.createdTimestamp || Date.now()).getTime() / 1000,
-      fee_apr: Number(item.feeAPR1d || item.fee_apr || item.feeAPR || 0),
+      // Fee APR: prioritize time-ranged fields (feeAPR1d = 1 day APR)
+      fee_apr: Number(item.feeAPR1d || item.feeAPR7d || item.fee_apr || item.feeAPR || 0),
     };
 
-    console.log(`[Alien] Pool ${poolAddress} detail:`, {
-      tvl: poolDetail.tvl_usd,
-      volume_24h: poolDetail.volume_24h,
-      fee_apr: poolDetail.fee_apr,
-      raw_item: item
-    });
+    console.log(`[Alien] Pool ${poolAddress} - TVL: $${poolDetail.tvl_usd}, Volume24h: $${poolDetail.volume_24h}, FeeAPR: ${poolDetail.fee_apr}%`);
 
     return poolDetail;
   } catch (error) {

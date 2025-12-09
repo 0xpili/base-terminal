@@ -80,7 +80,7 @@ describe('OtherDEXPoolsCard', () => {
     it('should render empty state when no pools provided', () => {
       render(<OtherDEXPoolsCard />);
 
-      expect(screen.getByText(/OTHER_DEXES/i)).toBeInTheDocument();
+      expect(screen.getByText(/OTHER_DEXs/i)).toBeInTheDocument();
       expect(screen.getByText(/No additional DEX pool data available/i)).toBeInTheDocument();
     });
 
@@ -184,12 +184,14 @@ describe('OtherDEXPoolsCard', () => {
       expect(screen.getByText('N/A')).toBeInTheDocument();
     });
 
-    it('should filter out pools with zero TVL and volume', () => {
+    it('should filter out pools with no meaningful data', () => {
       const poolWithZeros: UniswapV3Pool = {
         ...mockUniswapPool,
         tvl_usd: 0,
         volume_24h: 0,
         swap_count_24h: 0,
+        fee_tier: 0,  // All values must be 0 to filter
+        fee_apr: undefined,  // No fee APR either
       };
 
       render(<OtherDEXPoolsCard uniswapPools={[poolWithZeros]} />);
@@ -199,8 +201,8 @@ describe('OtherDEXPoolsCard', () => {
     });
   });
 
-  describe('Summary Calculations', () => {
-    it('should calculate total TVL correctly', () => {
+  describe('TVL Display', () => {
+    it('should display individual pool TVLs correctly', () => {
       render(
         <OtherDEXPoolsCard
           uniswapPools={[mockUniswapPool]}
@@ -208,11 +210,12 @@ describe('OtherDEXPoolsCard', () => {
         />
       );
 
-      // Total TVL = 1,500,000 + 850,000 = 2,350,000 = $2.35M
-      expect(screen.getByText('$2.35M')).toBeInTheDocument();
+      // Individual pool TVLs should be displayed
+      expect(screen.getByText('$1.50M')).toBeInTheDocument();
+      expect(screen.getByText('$850.00K')).toBeInTheDocument();
     });
 
-    it('should handle missing TVL values in calculations', () => {
+    it('should handle missing TVL values in display', () => {
       const poolWithoutTVL: UniswapV3Pool = {
         ...mockUniswapPool,
         tvl_usd: 0,
@@ -225,8 +228,8 @@ describe('OtherDEXPoolsCard', () => {
         />
       );
 
-      // Total TVL should be just the pancake pool (appears in summary and table)
-      expect(screen.getAllByText('$850.00K').length).toBeGreaterThan(0);
+      // Should show $0.00 for pool without TVL and correct value for pancake pool
+      expect(screen.getByText('$850.00K')).toBeInTheDocument();
     });
 
   });
@@ -235,13 +238,7 @@ describe('OtherDEXPoolsCard', () => {
     it('should render the header correctly', () => {
       render(<OtherDEXPoolsCard uniswapPools={[mockUniswapPool]} />);
 
-      expect(screen.getByText(/OTHER_DEXES\.CFG/i)).toBeInTheDocument();
-    });
-
-    it('should render summary section labels', () => {
-      render(<OtherDEXPoolsCard uniswapPools={[mockUniswapPool]} />);
-
-      expect(screen.getByText('[CROSS_DEX_TVL]')).toBeInTheDocument();
+      expect(screen.getByText(/OTHER_DEXs/i)).toBeInTheDocument();
     });
 
     it('should render table headers', () => {

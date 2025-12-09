@@ -30,6 +30,21 @@ import type {
   UniswapV3Pool,
 } from '@/types/cambrian';
 
+// Helper to filter pools by token address (safety check after enrichment)
+function filterPoolsByToken(pools: UniswapV3Pool[] | undefined, tokenAddress: string): UniswapV3Pool[] {
+  if (!pools || pools.length === 0) return [];
+  const addrLower = tokenAddress.toLowerCase();
+
+  const filtered = pools.filter(pool => {
+    const t0 = (pool.token0_address || '').toLowerCase();
+    const t1 = (pool.token1_address || '').toLowerCase();
+    return t0 === addrLower || t1 === addrLower;
+  });
+
+  console.log(`[Filter] Pools containing ${tokenAddress}: ${filtered.length} of ${pools.length}`);
+  return filtered;
+}
+
 interface DashboardData {
   token: Token;
   currentPrice?: PriceCurrentResponse;
@@ -144,25 +159,27 @@ export default function Home() {
 
           console.log('[UI] Other DEX pools enriched with TVL details');
 
-          // Update with enriched pool data
+          // Apply final safety filter to ensure only pools with searched token are shown
+          const filteredUniswap = enrichedUniswap.status === 'fulfilled'
+            ? filterPoolsByToken(enrichedUniswap.value, token.address)
+            : [];
+          const filteredPancake = enrichedPancake.status === 'fulfilled'
+            ? filterPoolsByToken(enrichedPancake.value, token.address)
+            : [];
+          const filteredSushi = enrichedSushi.status === 'fulfilled'
+            ? filterPoolsByToken(enrichedSushi.value, token.address)
+            : [];
+          const filteredAlien = enrichedAlien.status === 'fulfilled'
+            ? filterPoolsByToken(enrichedAlien.value, token.address)
+            : [];
+
+          // Update with filtered pool data
           setDashboardData((prev) => ({
             ...prev!,
-            uniswapPools:
-              enrichedUniswap.status === 'fulfilled'
-                ? enrichedUniswap.value
-                : undefined,
-            pancakePools:
-              enrichedPancake.status === 'fulfilled'
-                ? enrichedPancake.value
-                : undefined,
-            sushiPools:
-              enrichedSushi.status === 'fulfilled'
-                ? enrichedSushi.value
-                : undefined,
-            alienPools:
-              enrichedAlien.status === 'fulfilled'
-                ? enrichedAlien.value
-                : undefined,
+            uniswapPools: filteredUniswap.length > 0 ? filteredUniswap : undefined,
+            pancakePools: filteredPancake.length > 0 ? filteredPancake : undefined,
+            sushiPools: filteredSushi.length > 0 ? filteredSushi : undefined,
+            alienPools: filteredAlien.length > 0 ? filteredAlien : undefined,
           }));
 
           setLoadingOtherPools(false);
