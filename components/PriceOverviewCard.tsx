@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useCallback } from 'react';
 import { formatCurrency, formatPercent, getChangeColor, getChangeIcon, calculatePriceChange, getBaseScanUrl } from '@/lib/utils';
 import type { PriceCurrentResponse, PriceHourResponse, Token } from '@/types/cambrian';
 
@@ -132,9 +133,9 @@ export default function PriceOverviewCard({ token, currentPrice, priceHistory, o
 
           {/* Simple ASCII Chart */}
           {priceHistory && priceHistory.length > 0 && (
-            <div className="mt-3">
+            <div className="mt-3 overflow-visible">
               <div className="text-terminal-textDim text-xs mb-1.5">[24H_CHART]</div>
-              <div className="h-20 border border-terminal-border rounded p-1.5 relative">
+              <div className="h-20 border border-terminal-border rounded p-1.5 relative overflow-visible">
                 <SimpleChart data={priceHistory} />
               </div>
             </div>
@@ -152,8 +153,26 @@ export default function PriceOverviewCard({ token, currentPrice, priceHistory, o
   );
 }
 
-// Simple SVG-based chart component
+// Interactive SVG-based chart component with hover tooltip
 function SimpleChart({ data }: { data: PriceHourResponse[] }) {
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current || data.length === 0) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = x / rect.width;
+    const index = Math.round(percentage * (data.length - 1));
+    const clampedIndex = Math.max(0, Math.min(data.length - 1, index));
+    setHoverIndex(clampedIndex);
+  }, [data.length]);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoverIndex(null);
+  }, []);
+
   if (data.length === 0) return null;
 
   const prices = data.map(d => d.price_usd);
@@ -167,16 +186,87 @@ function SimpleChart({ data }: { data: PriceHourResponse[] }) {
     return `${x},${y}`;
   }).join(' ');
 
+  // Calculate hover point position
+  const hoverData = hoverIndex !== null ? data[hoverIndex] : null;
+  const hoverX = hoverIndex !== null ? (hoverIndex / (data.length - 1)) * 100 : 0;
+  const hoverY = hoverData && range !== 0
+    ? 100 - ((hoverData.price_usd - min) / range) * 100
+    : 50;
+
   return (
-    <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-      <polyline
-        points={points}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="text-terminal-text"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
+    <div
+      ref={containerRef}
+      className="w-full h-full relative cursor-crosshair"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Tooltip */}
+      {hoverData && hoverIndex !== null && (
+        <div
+          className="absolute z-50 pointer-events-none"
+          style={{
+            left: `${hoverX}%`,
+            bottom: '100%',
+            marginBottom: '4px',
+            transform: hoverX > 75 ? 'translateX(-100%)' : hoverX < 25 ? 'translateX(0)' : 'translateX(-50%)',
+          }}
+        >
+          <div className="bg-terminal-bg border border-terminal-text/50 px-1.5 py-0.5 rounded text-xs whitespace-nowrap shadow-lg">
+            <div className="text-terminal-textBright font-mono">
+              {formatCurrency(hoverData.price_usd, 6)}
+            </div>
+            <div className="text-terminal-textDim text-[10px]">
+              {(() => {
+                const ts = hoverData.timestamp;
+                // Handle various timestamp formats
+                const date = ts > 1e12 ? new Date(ts) : new Date(ts * 1000);
+                return isNaN(date.getTime())
+                  ? `${data.length - hoverIndex}h ago`
+                  : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {/* Vertical line indicator */}
+        {hoverIndex !== null && (
+          <line
+            x1={hoverX}
+            y1="0"
+            x2={hoverX}
+            y2="100"
+            stroke="currentColor"
+            strokeWidth="1"
+            strokeDasharray="2,2"
+            className="text-terminal-textDim"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+
+        {/* Main chart line */}
+        <polyline
+          points={points}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="text-terminal-text"
+          vectorEffect="non-scaling-stroke"
+        />
+
+        {/* Hover dot */}
+        {hoverIndex !== null && (
+          <circle
+            cx={hoverX}
+            cy={hoverY}
+            r="1.5"
+            fill="currentColor"
+            className="text-terminal-textBright"
+            vectorEffect="non-scaling-stroke"
+          />
+        )}
+      </svg>
+    </div>
   );
 }

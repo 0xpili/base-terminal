@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 /** Enable debug logging via browser console: window.__CAMBRIAN_DEBUG__ = true */
 const DEBUG = typeof window !== 'undefined' && (window as any).__CAMBRIAN_DEBUG__ === true;
@@ -60,14 +61,17 @@ interface DashboardData {
   alienPools?: UniswapV3Pool[];
 }
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [loadingAerodomePools, setLoadingAerodomePools] = useState(false);
   const [loadingOtherPools, setLoadingOtherPools] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = useCallback(async (query: string, updateUrl = true) => {
     setLoading(true);
     setError(null);
     setDashboardData(null);
@@ -106,6 +110,11 @@ export default function Home() {
 
       setDashboardData(initialData);
       setLoading(false);
+
+      // Update URL with token address for sharing
+      if (updateUrl) {
+        router.replace(`?token=${token.address}`, { scroll: false });
+      }
 
       // Step 3: Load Aerodrome pools first (fast, no enrichment needed)
       setLoadingAerodomePools(true);
@@ -205,7 +214,15 @@ export default function Home() {
       }
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  // Auto-search token from URL on page load
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get('token');
+    if (tokenFromUrl && !dashboardData && !loading) {
+      handleSearch(tokenFromUrl, false);
+    }
+  }, [searchParams, dashboardData, loading, handleSearch]);
 
   const handleRetry = () => {
     if (dashboardData?.token) {
@@ -217,6 +234,29 @@ export default function Home() {
     setDashboardData(null);
     setError(null);
     setLoading(false);
+    router.replace('/', { scroll: false });
+  };
+
+  const handleShare = async () => {
+    if (!dashboardData?.token) return;
+
+    const shareUrl = `${window.location.origin}?token=${dashboardData.token.address}`;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (
@@ -259,17 +299,38 @@ export default function Home() {
                 >
                   BASE TERMINAL
                 </button>
-                <p className="text-terminal-textDim text-xs hidden md:block">
-                  Powered by{' '}
-                  <a
-                    href="https://www.cambrian.org/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-terminal-text hover:text-terminal-textBright underline"
-                  >
-                    Cambrian API
-                  </a>
-                </p>
+                <div className="flex items-center gap-4">
+                  {dashboardData && (
+                    <button
+                      onClick={handleShare}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-terminal-border rounded hover:border-terminal-text hover:text-terminal-textBright transition-colors"
+                      title="Copy shareable link"
+                    >
+                      {copied ? (
+                        <>
+                          <span className="text-terminal-textBright">✓</span>
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>⎘</span>
+                          <span>Share</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <p className="text-terminal-textDim text-xs hidden md:block">
+                    Powered by{' '}
+                    <a
+                      href="https://www.cambrian.org/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-terminal-text hover:text-terminal-textBright underline"
+                    >
+                      Cambrian API
+                    </a>
+                  </p>
+                </div>
               </div>
             </header>
 
@@ -340,5 +401,13 @@ export default function Home() {
         </footer>
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <HomeContent />
+    </Suspense>
   );
 }

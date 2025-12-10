@@ -1,6 +1,6 @@
 # Contributing to Base Terminal
 
-Thank you for your interest in contributing to Base Terminal! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to Base Terminal. This document provides guidelines and instructions for contributing.
 
 ## Code of Conduct
 
