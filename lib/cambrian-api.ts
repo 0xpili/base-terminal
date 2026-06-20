@@ -133,7 +133,6 @@ export async function getCurrentPrice(
 ): Promise<PriceCurrentResponse> {
   const data = await fetchCambrian<ColumnarResponse[]>('/evm/price-current', {
     token_address: tokenAddress,
-    chain_id: BASE_CHAIN_ID,
   });
 
   const transformed = transformColumnarToObjects<any>(data);
@@ -155,7 +154,6 @@ export async function getPriceHistory(
 ): Promise<PriceHourResponse[]> {
   const data = await fetchCambrian<ColumnarResponse[]>('/evm/price-hour', {
     token_address: tokenAddress,
-    chain_id: BASE_CHAIN_ID,
     hours,
   });
 
@@ -175,7 +173,6 @@ export async function getTopHolders(
 ): Promise<TopHoldersResponse> {
   const data = await fetchCambrian<ColumnarResponse[]>('/evm/tvl/top-owners', {
     token_address: tokenAddress,
-    chain_id: BASE_CHAIN_ID,
   });
 
   const transformed = transformColumnarToObjects<any>(data);
@@ -333,9 +330,7 @@ async function getUniV3StylePools(
     : 'DEX';
 
   // Build query params
-  const params: Record<string, string | number> = {
-    chain_id: BASE_CHAIN_ID,
-  };
+  const params: Record<string, string | number> = {};
 
   // Add token_address if provided (API may support server-side filtering)
   if (tokenAddress) {
@@ -499,7 +494,6 @@ export async function enrichPoolsWithDetails(
 export async function getUniswapV3PoolDetail(poolAddress: string): Promise<UniswapV3Pool | null> {
   try {
     const data = await fetchCambrian<ColumnarResponse[]>('/evm/uniswap/v3/pool', {
-      chain_id: BASE_CHAIN_ID,
       pool_address: poolAddress,
     });
     const transformed = transformColumnarToObjects<any>(data);
@@ -548,7 +542,6 @@ export async function getUniswapV3PoolDetail(poolAddress: string): Promise<Unisw
 export async function getPancakeV3PoolDetail(poolAddress: string): Promise<UniswapV3Pool | null> {
   try {
     const data = await fetchCambrian<ColumnarResponse[]>('/evm/pancake/v3/pool', {
-      chain_id: BASE_CHAIN_ID,
       pool_address: poolAddress,
     });
     const transformed = transformColumnarToObjects<any>(data);
@@ -593,7 +586,6 @@ export async function getPancakeV3PoolDetail(poolAddress: string): Promise<Unisw
 export async function getSushiV3PoolDetail(poolAddress: string): Promise<UniswapV3Pool | null> {
   try {
     const data = await fetchCambrian<ColumnarResponse[]>('/evm/sushi/v3/pool', {
-      chain_id: BASE_CHAIN_ID,
       pool_address: poolAddress,
     });
     const transformed = transformColumnarToObjects<any>(data);
@@ -641,7 +633,6 @@ export async function getSushiV3PoolDetail(poolAddress: string): Promise<Uniswap
 export async function getAlienV3PoolDetail(poolAddress: string): Promise<UniswapV3Pool | null> {
   try {
     const data = await fetchCambrian<ColumnarResponse[]>('/evm/alien/v3/pool', {
-      chain_id: BASE_CHAIN_ID,
       pool_address: poolAddress,
     });
     const transformed = transformColumnarToObjects<any>(data);
@@ -686,7 +677,6 @@ export async function getAlienV3PoolDetail(poolAddress: string): Promise<Uniswap
 export async function getAerodromeV3PoolDetail(poolAddress: string): Promise<UniswapV3Pool | null> {
   try {
     const data = await fetchCambrian<ColumnarResponse[]>('/evm/aero/v3/pool', {
-      chain_id: BASE_CHAIN_ID,
       pool_address: poolAddress,
     });
     const transformed = transformColumnarToObjects<any>(data);
@@ -734,9 +724,8 @@ export async function getChains(): Promise<ChainsResponse> {
 export async function getTokens(
   chainId: number = BASE_CHAIN_ID
 ): Promise<TokensResponse> {
-  const data = await fetchCambrian<ColumnarResponse[]>('/evm/tokens', {
-    chain_id: chainId,
-  });
+  // Note: /evm/tokens no longer accepts a chain_id param; it returns Base tokens.
+  const data = await fetchCambrian<ColumnarResponse[]>('/evm/tokens');
 
   const transformed = transformColumnarToObjects<any>(data);
   const tokens: Token[] = transformed.map(item => ({
@@ -754,9 +743,8 @@ export async function getTokens(
 }
 
 export async function getDexes(chainId: number = BASE_CHAIN_ID): Promise<DexesResponse> {
-  const data = await fetchCambrian<ColumnarResponse[]>('/evm/dexes', {
-    chain_id: chainId,
-  });
+  // Note: /evm/dexes no longer accepts a chain_id param.
+  const data = await fetchCambrian<ColumnarResponse[]>('/evm/dexes');
 
   const transformed = transformColumnarToObjects<any>(data);
   const dexes = transformed.map(item => ({
