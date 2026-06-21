@@ -134,74 +134,42 @@ function HomeContent() {
           setLoadingAerodomePools(false);
         });
 
-      // Step 4: Load Other DEX pools separately (slower, needs enrichment)
+      // Step 4: Load Other DEX pools separately (slower, needs enrichment).
+      // The per-pool detail endpoint is slow, so load + enrich each DEX independently
+      // and render it as soon as it's ready. This way one slow DEX can't stall the whole
+      // section, and pools appear progressively instead of all-or-nothing.
       setLoadingOtherPools(true);
       if (DEBUG) console.log('[UI] Loading Other DEX pools for token:', token.address);
 
-      Promise.allSettled([
-        getUniswapV3Pools(token.address, 100),
-        getPancakeV3Pools(token.address, 100),
-        getSushiV3Pools(token.address, 100),
-        getAlienV3Pools(token.address, 100),
-      ])
-        .then(async ([uniswapPools, pancakePools, sushiPools, alienPools]) => {
-          if (DEBUG) {
-            console.log('[UI] Other DEX pool lists loaded:', {
-              uniswap: uniswapPools.status === 'fulfilled' ? uniswapPools.value.pools.length : 'failed',
-              pancake: pancakePools.status === 'fulfilled' ? pancakePools.value.pools.length : 'failed',
-              sushi: sushiPools.status === 'fulfilled' ? sushiPools.value.pools.length : 'failed',
-              alien: alienPools.status === 'fulfilled' ? alienPools.value.pools.length : 'failed',
-            });
+      const otherDexLoaders: Array<{
+        key: 'uniswapPools' | 'pancakePools' | 'sushiPools' | 'alienPools';
+        dex: 'uniswap' | 'pancake' | 'sushi' | 'alien';
+        fetchPools: (addr: string, limit?: number) => Promise<{ pools: UniswapV3Pool[] }>;
+      }> = [
+        { key: 'uniswapPools', dex: 'uniswap', fetchPools: getUniswapV3Pools },
+        { key: 'pancakePools', dex: 'pancake', fetchPools: getPancakeV3Pools },
+        { key: 'sushiPools', dex: 'sushi', fetchPools: getSushiV3Pools },
+        { key: 'alienPools', dex: 'alien', fetchPools: getAlienV3Pools },
+      ];
+
+      Promise.allSettled(
+        otherDexLoaders.map(async ({ key, dex, fetchPools }) => {
+          try {
+            const { pools } = await fetchPools(token.address, 100);
+            const enriched = await enrichPoolsWithDetails(pools, dex);
+            const filtered = filterPoolsByToken(enriched, token.address);
+            if (DEBUG) console.log(`[UI] ${dex} pools ready: ${filtered.length}`);
+            if (filtered.length > 0) {
+              setDashboardData((prev) => (prev ? { ...prev, [key]: filtered } : prev));
+              // Reveal the section as soon as ANY DEX has pools; the rest fill in live.
+              setLoadingOtherPools(false);
+            }
+          } catch (error) {
+            if (DEBUG) console.error(`[UI] Error loading ${dex} pools:`, error);
           }
-
-          // Enrich pools with detailed TVL data in parallel
-          const [enrichedUniswap, enrichedPancake, enrichedSushi, enrichedAlien] =
-            await Promise.allSettled([
-              uniswapPools.status === 'fulfilled'
-                ? enrichPoolsWithDetails(uniswapPools.value.pools, 'uniswap')
-                : Promise.resolve([]),
-              pancakePools.status === 'fulfilled'
-                ? enrichPoolsWithDetails(pancakePools.value.pools, 'pancake')
-                : Promise.resolve([]),
-              sushiPools.status === 'fulfilled'
-                ? enrichPoolsWithDetails(sushiPools.value.pools, 'sushi')
-                : Promise.resolve([]),
-              alienPools.status === 'fulfilled'
-                ? enrichPoolsWithDetails(alienPools.value.pools, 'alien')
-                : Promise.resolve([]),
-            ]);
-
-          if (DEBUG) console.log('[UI] Other DEX pools enriched with TVL details');
-
-          // Apply final safety filter to ensure only pools with searched token are shown
-          const filteredUniswap = enrichedUniswap.status === 'fulfilled'
-            ? filterPoolsByToken(enrichedUniswap.value, token.address)
-            : [];
-          const filteredPancake = enrichedPancake.status === 'fulfilled'
-            ? filterPoolsByToken(enrichedPancake.value, token.address)
-            : [];
-          const filteredSushi = enrichedSushi.status === 'fulfilled'
-            ? filterPoolsByToken(enrichedSushi.value, token.address)
-            : [];
-          const filteredAlien = enrichedAlien.status === 'fulfilled'
-            ? filterPoolsByToken(enrichedAlien.value, token.address)
-            : [];
-
-          // Update with filtered pool data
-          setDashboardData((prev) => ({
-            ...prev!,
-            uniswapPools: filteredUniswap.length > 0 ? filteredUniswap : undefined,
-            pancakePools: filteredPancake.length > 0 ? filteredPancake : undefined,
-            sushiPools: filteredSushi.length > 0 ? filteredSushi : undefined,
-            alienPools: filteredAlien.length > 0 ? filteredAlien : undefined,
-          }));
-
-          setLoadingOtherPools(false);
         })
-        .catch((error) => {
-          if (DEBUG) console.error('[UI] Error loading Other DEX pools:', error);
-          setLoadingOtherPools(false);
-        });
+        // Ensure the spinner clears even if no DEX returned pools (shows "no data").
+      ).then(() => setLoadingOtherPools(false));
     } catch (err) {
       if (err instanceof CambrianAPIError) {
         setError(`API Error: ${err.message}`);

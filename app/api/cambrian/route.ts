@@ -74,12 +74,15 @@ export async function GET(request: NextRequest) {
     // Make the request to Cambrian API
     if (DEBUG) console.log('[Cambrian API] Fetching:', endpoint);
 
+    // Abort slow upstream requests so the serverless function returns a 504
+    // instead of hanging (and counting against the platform execution limit).
     const response = await fetch(cambrianUrl.toString(), {
       method: 'GET',
       headers: {
         'X-API-Key': apiKey,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(20000),
     });
 
     if (!response.ok) {
@@ -112,12 +115,15 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     if (DEBUG) console.error('[Cambrian API] Proxy error:', error);
+    // Upstream timeout (AbortSignal.timeout) -> 504 so the client treats it as a
+    // slow endpoint, not an auth failure (the client maps 500 to "Invalid API key").
+    const isTimeout = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: isTimeout ? 'Upstream request timed out' : 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500 }
+      { status: isTimeout ? 504 : 500 }
     );
   }
 }

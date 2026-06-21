@@ -72,9 +72,14 @@ function transformColumnarToObjects<T>(columnarData: ColumnarResponse[]): T[] {
   });
 }
 
+// Default per-request timeout. Some Cambrian endpoints (e.g. pool detail) can be
+// very slow, so a request must never hang forever and stall the dashboard.
+const DEFAULT_TIMEOUT_MS = 15000;
+
 async function fetchCambrian<T>(
   endpoint: string,
-  params?: Record<string, string | number>
+  params?: Record<string, string | number>,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<T> {
   // Use our Next.js API route as a proxy to avoid CORS issues
   const url = new URL('/api/cambrian', window.location.origin);
@@ -89,12 +94,18 @@ async function fetchCambrian<T>(
     });
   }
 
+  // Abort the request if it exceeds the timeout so a single slow endpoint
+  // cannot block the rest of the dashboard from loading.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -121,9 +132,14 @@ async function fetchCambrian<T>(
     if (error instanceof CambrianAPIError) {
       throw error;
     }
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new CambrianAPIError(`Request timed out after ${timeoutMs}ms: ${endpoint}`);
+    }
     throw new CambrianAPIError(
       `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -429,8 +445,11 @@ export async function enrichPoolsWithDetails(
 
   const fetcher = detailFetchers[dex];
 
-  // Strategy: Try to enrich pools, but don't discard original data if enrichment fails
-  const MAX_POOLS_TO_ENRICH = 30;
+  // Strategy: Try to enrich pools, but don't discard original data if enrichment fails.
+  // The per-pool detail endpoint is slow (several seconds each) and browsers cap
+  // concurrent requests per origin, so enriching too many pools makes the "Other DEXs"
+  // section take minutes. Keep this small so the section loads in reasonable time.
+  const MAX_POOLS_TO_ENRICH = 10;
   const poolsToEnrich = pools.slice(0, MAX_POOLS_TO_ENRICH);
 
   debugLog(`[${dex}] Starting enrichment for top ${poolsToEnrich.length} of ${pools.length} pools`);
