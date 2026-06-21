@@ -178,16 +178,18 @@ export async function getTopHolders(
   const transformed = transformColumnarToObjects<any>(data);
 
   // Calculate total token supply from holders
-  const totalSupply = transformed.reduce((sum, item) =>
-    sum + Number(item.tokenAmount || 0), 0
-  );
+  // API column is tokenAmountUI (with tokenAmountRaw as fallback); older field name was tokenAmount.
+  const amountOf = (item: any): number =>
+    Number(item.tokenAmountUI ?? item.tokenAmount ?? item.tokenAmountRaw ?? 0);
+  const totalSupply = transformed.reduce((sum, item) => sum + amountOf(item), 0);
 
   const holders = transformed.slice(0, limit).map(item => {
-    const tokenAmount = Number(item.tokenAmount || 0);
+    const tokenAmount = amountOf(item);
     const percentage = totalSupply > 0 ? (tokenAmount / totalSupply) * 100 : 0;
 
     return {
-      holder_address: item.owner || item.holderAddress || item.holder_address,
+      // API column is ownerAddress; keep older fallbacks for safety.
+      holder_address: item.ownerAddress || item.owner || item.holderAddress || item.holder_address || '',
       balance: String(tokenAmount),
       balance_usd: Number(item.valueUSD || item.balanceUSD || item.balance_usd || 0),
       percentage,

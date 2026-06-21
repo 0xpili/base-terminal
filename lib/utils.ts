@@ -42,7 +42,8 @@ export function formatPercent(value: number, decimals: number = 2): string {
   return `${sign}${value.toFixed(decimals)}%`;
 }
 
-export function formatAddress(address: string, chars: number = 4): string {
+export function formatAddress(address: string | undefined | null, chars: number = 4): string {
+  if (!address) return 'N/A';
   if (address.length <= chars * 2 + 2) {
     return address;
   }
